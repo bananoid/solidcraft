@@ -355,7 +355,7 @@
       "params": {
         "point": [
           "0*specimen_width",
-          "(bend_y)-bend_allowance/2-corner_r"
+          "(bend_y)-slot_width/2-corner_r"
         ],
         "id": "b0s0ol"
       }
@@ -365,7 +365,7 @@
       "params": {
         "point": [
           "0*specimen_width",
-          "(bend_y)+bend_allowance/2+corner_r"
+          "(bend_y)+slot_width/2+corner_r"
         ],
         "id": "b0s0oh"
       }
@@ -375,7 +375,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(bend_y)+bend_allowance/2"
+          "(bend_y)+slot_width/2"
         ],
         "id": "b0s0ih"
       }
@@ -385,7 +385,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(bend_y)-bend_allowance/2"
+          "(bend_y)-slot_width/2"
         ],
         "id": "b0s0il"
       }
@@ -395,7 +395,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(bend_y)+bend_allowance/2+corner_r"
+          "(bend_y)+slot_width/2+corner_r"
         ],
         "id": "b0s0ch"
       }
@@ -405,7 +405,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(bend_y)-bend_allowance/2-corner_r"
+          "(bend_y)-slot_width/2-corner_r"
         ],
         "id": "b0s0cl"
       }
@@ -451,7 +451,7 @@
       "params": {
         "point": [
           "specimen_width",
-          "(bend_y)-bend_allowance/2-corner_r"
+          "(bend_y)-slot_width/2-corner_r"
         ],
         "id": "b0s1ol"
       }
@@ -461,7 +461,7 @@
       "params": {
         "point": [
           "specimen_width",
-          "(bend_y)+bend_allowance/2+corner_r"
+          "(bend_y)+slot_width/2+corner_r"
         ],
         "id": "b0s1oh"
       }
@@ -471,7 +471,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(bend_y)+bend_allowance/2"
+          "(bend_y)+slot_width/2"
         ],
         "id": "b0s1ih"
       }
@@ -481,7 +481,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(bend_y)-bend_allowance/2"
+          "(bend_y)-slot_width/2"
         ],
         "id": "b0s1il"
       }
@@ -491,7 +491,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(bend_y)+bend_allowance/2+corner_r"
+          "(bend_y)+slot_width/2+corner_r"
         ],
         "id": "b0s1ch"
       }
@@ -501,7 +501,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(bend_y)-bend_allowance/2-corner_r"
+          "(bend_y)-slot_width/2-corner_r"
         ],
         "id": "b0s1cl"
       }
@@ -547,7 +547,7 @@
       "params": {
         "point": [
           "0*specimen_width",
-          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+          "(specimen_depth-bend_y)-slot_width/2-corner_r"
         ],
         "id": "b1s0ol"
       }
@@ -557,7 +557,7 @@
       "params": {
         "point": [
           "0*specimen_width",
-          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+          "(specimen_depth-bend_y)+slot_width/2+corner_r"
         ],
         "id": "b1s0oh"
       }
@@ -567,7 +567,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(specimen_depth-bend_y)+bend_allowance/2"
+          "(specimen_depth-bend_y)+slot_width/2"
         ],
         "id": "b1s0ih"
       }
@@ -577,7 +577,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(specimen_depth-bend_y)-bend_allowance/2"
+          "(specimen_depth-bend_y)-slot_width/2"
         ],
         "id": "b1s0il"
       }
@@ -587,7 +587,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+          "(specimen_depth-bend_y)+slot_width/2+corner_r"
         ],
         "id": "b1s0ch"
       }
@@ -597,7 +597,7 @@
       "params": {
         "point": [
           "(0*specimen_width)+(1)*corner_r",
-          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+          "(specimen_depth-bend_y)-slot_width/2-corner_r"
         ],
         "id": "b1s0cl"
       }
@@ -643,7 +643,7 @@
       "params": {
         "point": [
           "specimen_width",
-          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+          "(specimen_depth-bend_y)-slot_width/2-corner_r"
         ],
         "id": "b1s1ol"
       }
@@ -653,7 +653,7 @@
       "params": {
         "point": [
           "specimen_width",
-          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+          "(specimen_depth-bend_y)+slot_width/2+corner_r"
         ],
         "id": "b1s1oh"
       }
@@ -663,7 +663,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(specimen_depth-bend_y)+bend_allowance/2"
+          "(specimen_depth-bend_y)+slot_width/2"
         ],
         "id": "b1s1ih"
       }
@@ -673,7 +673,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(specimen_depth-bend_y)-bend_allowance/2"
+          "(specimen_depth-bend_y)-slot_width/2"
         ],
         "id": "b1s1il"
       }
@@ -683,7 +683,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+          "(specimen_depth-bend_y)+slot_width/2+corner_r"
         ],
         "id": "b1s1ch"
       }
@@ -693,7 +693,7 @@
       "params": {
         "point": [
           "(specimen_width)+(-1)*corner_r",
-          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+          "(specimen_depth-bend_y)-slot_width/2-corner_r"
         ],
         "id": "b1s1cl"
       }

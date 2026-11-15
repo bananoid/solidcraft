@@ -34,6 +34,7 @@ CASES = {
                   "slot_bridge": "4 mm", "slot_margin": "3 mm"},
     "corner-5": {"corner_r": "5 mm"},
     "depth-120": {"specimen_depth": "120 mm"},
+    "wide-slots": {"slot_width": "3 mm"},
 }
 
 
@@ -74,15 +75,15 @@ def expected(changes):
     setback = (radius + thickness) * math.tan(angle/2)
     flat_length = depth + 2*p["specimen_flange"] - 4*setback + 2*allowance
     slot_area = (length - slot_width)*slot_width + math.pi*slot_width**2/4
-    # Four outer corners. Each of four bend-end reliefs removes a bend strip
+    # Four outer corners. Each bend-end relief removes a slot-height throat
     # and the scraps outside two quarter circles in the adjacent panels.
     outer_scraps = 4*corner**2*(1 - math.pi/4)
-    end_reliefs = 4*(corner*allowance + 2*corner**2*(1 - math.pi/4))
+    end_reliefs = 4*(corner*slot_width + 2*corner**2*(1 - math.pi/4))
     volume = (width*flat_length - 2*count*slot_area - outer_scraps - end_reliefs)*thickness
     return p, 2*count, flat_length, volume
 
 
-def dxf_counts(dxf):
+def dxf_entities(dxf):
     lines = dxf.splitlines()
     pairs = [(int(lines[i].strip()), lines[i+1].strip()) for i in range(0, len(lines)-1, 2)]
     section, current, entities = None, None, []
@@ -97,7 +98,43 @@ def dxf_counts(dxf):
             current = {"type": value}
         elif current is not None and code == 8:
             current["layer"] = value
-    return collections.Counter((e.get("layer"), e["type"]) for e in entities)
+        elif current is not None and code in (10, 20, 11, 21):
+            current[str(code)] = float(value)
+    return entities
+
+
+def dxf_counts(dxf):
+    return collections.Counter((e.get("layer"), e["type"]) for e in dxf_entities(dxf))
+
+
+def check_relief_alignment(flat, entities, p):
+    angle = math.radians(p["specimen_angle"])
+    allowance = angle*(p["specimen_r"] + p["specimen_k"]*p["specimen_t"])
+    centre = (p["specimen_r"] + p["specimen_t"])*math.tan(angle/2) - allowance/2
+    centres = [centre, p["specimen_depth"] - centre]
+    width = p["slot_width"]
+    errors = []
+    for y in centres:
+        for x in [p["corner_r"], p["specimen_width"] - p["corner_r"]]:
+            matches = []
+            for e in entities:
+                if e.get("layer") != "OUTLINE" or e["type"] != "LINE":
+                    continue
+                low, high = sorted([e["20"], e["21"]])
+                error = max(abs(e["10"] - x), abs(e["11"] - x),
+                            abs(low - (y-width/2)), abs(high - (y+width/2)))
+                if error < 1e-6:
+                    matches.append(error)
+            assert len(matches) == 1, ("relief throat must align with slot", x, y, matches)
+            errors.extend(matches)
+    for shape in flat["cutout_shapes"]:
+        arcs = [s["arc"] for s in shape["segments"] if "arc" in s]
+        low = min(a["center"][1]-a["radius"] for a in arcs)
+        high = max(a["center"][1]+a["radius"] for a in arcs)
+        y = min(centres, key=lambda v: abs((low+high)/2-v))
+        errors += [abs(low-(y-width/2)), abs(high-(y+width/2))]
+    assert max(errors) < 1e-6, errors
+    return max(errors)
 
 
 def main():
@@ -135,16 +172,21 @@ def main():
             arcs = [s["arc"] for s in shape["segments"] if "arc" in s]
             assert len(arcs) == 2, name
             assert all(abs(a["radius"] - p["slot_width"]/2) < 1e-6 for a in arcs), name
-        query = write_script(work / "inspect-saved.json", inspect_commands())
+        query = write_script(work / "inspect-saved.json", inspect_commands() + [
+            {"command": "sheet.export_dxf", "params": {"body": BODY, "bend_lines": False}},
+        ])
         reopened = run(args.cli, query, work / (name + "-reopened.json"), saved)
         assert len(reopened[0]["cutouts"]) == slots, name
         assert reopened[1]["bodies"][0]["closed"], name
         assert abs(reopened[1]["bodies"][0]["volume_mm3"] - body["volume_mm3"]) < 1e-6, name
+        alignment_error = check_relief_alignment(reopened[0], dxf_entities(reopened[2]["dxf"]), p)
         receipt = {"case": name, "changes": changes, "slots": slots,
                    "closed": True, "sheet_metal": True, "sketch_dof": [0, 0],
                    "saved_variant_reopened": True, "flat_size_mm": flat["flat_size_mm"],
                    "expected_volume_mm3": volume, "measured_volume_mm3": body["volume_mm3"],
-                   "volume_error_mm3": body["volume_mm3"] - volume}
+                   "volume_error_mm3": body["volume_mm3"] - volume,
+                   "relief_height_mm": p["slot_width"], "aligned_reliefs": 4,
+                   "max_alignment_error_mm": alignment_error}
         receipts.append(receipt)
         print(name + ": pass", flush=True)
     query = write_script(work / "dxf.json", [

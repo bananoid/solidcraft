@@ -39,7 +39,8 @@ for inspection; it creates no STEP files and changes no open desktop document.
    and spacings, then cut the profiles through the sheet in one extrusion.
 7. Cut the material outside a rounded perimeter to round the four free corners.
 8. Cut the rounded bend-end reliefs. Their lines and arcs use parameter-bound sketch
-   points, so their shapes follow the bend allowance and corner radius.
+   points. Their centres follow the bend position, and their throat height follows
+   `slot_width`, keeping the reliefs aligned with the slots.
 9. Refold and inspect the resulting sheet and its flat pattern.
 
 There are no Move, Rotate or Scale features. The ordinary native feature history,
@@ -65,7 +66,7 @@ All values below are geometry test inputs, not manufacturing recommendations.
 | `specimen_angle` | 45 deg | Bend angle |
 | `specimen_k` | 0.5 | Analytic test control, not a calibrated material K-factor |
 | `slot_length` | 7 mm | Overall slot length, including rounded ends |
-| `slot_width` | 1 mm | Width across the bend; slot end radius is half this |
+| `slot_width` | 1 mm | Slot and relief throat height across the bend; slot end radius is half this |
 | `slot_bridge` | 3 mm | Clear material between consecutive slots |
 | `slot_margin` | 2 mm | Minimum clearance from a relieved bend end |
 | `corner_r` | 3 mm | Free-corner radius and bend-end setback/round radius |
@@ -84,14 +85,19 @@ Bend allowance is `angle_in_radians * (inside_radius + K * thickness)`.
 The seed row, its second-row spacing and the bend-end cuts follow this expression.
 Changing the bend angle therefore changes the cut positions as well as the bend itself.
 
+The straight throat of every end relief runs from `bend_centre - slot_width/2` to
+`bend_centre + slot_width/2`, exactly matching the slot height and centre line.
+The rounded entry corners widen the outer mouth; `corner_r` controls that flare.
+
 `corner_r` is deliberately coupled to the end setback in this first specimen.
 A reusable tool should expose independent end setback, panel corner radius, seam gap,
 minimum bridge and relief shape controls, subject to geometry validation.
 
 ## Checks performed
 
-The checker runs eight cases: native reopen, width 80 mm, bends at 90 and 30 degrees,
-thickness/radius 1.5 mm, changed slot dimensions, corner radius 5 mm and depth 120 mm.
+The checker runs nine cases: native reopen, width 80 mm, bends at 90 and 30 degrees,
+thickness/radius 1.5 mm, changed slot dimensions, corner radius 5 mm, depth 120 mm,
+and slot width 3 mm (wider than the default bend allowance).
 Each case is saved and opened again.
 
 It checks:
@@ -100,6 +106,8 @@ It checks:
 - Zero degrees of freedom in the slot seed and bend-end relief sketches.
 - Flat dimensions against the bend-allowance formula.
 - Slot end arcs at half the specified width.
+- All four relief throat heights and centre lines against the slot bounds, using
+  exact DXF outline lines after reopening each saved variant.
 - Volume against independent areas for the blank, capsule slots, quarter-circle
   corner scraps and bend-end reliefs. The absolute numerical comparison is 0.001 mm3.
 - Saved variants reproduce their cut count and measured volume.
