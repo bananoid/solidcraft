@@ -14,6 +14,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+from bend_slots_example import PROFILES, build_example
+
 
 BODY = "Hand-bend specimen"
 DEFAULTS = {
@@ -35,6 +37,7 @@ CASES = {
     "corner-5": {"corner_r": "5 mm"},
     "depth-120": {"specimen_depth": "120 mm"},
     "wide-slots": {"slot_width": "3 mm"},
+    "shorter-width": {"specimen_width": "57 mm"},
 }
 
 
@@ -63,22 +66,24 @@ def inspect_commands():
     ]
 
 
-def expected(changes):
+def expected(changes, profile):
     p = DEFAULTS | {k: float(v.split()[0]) for k, v in changes.items()}
     width, depth = p["specimen_width"], p["specimen_depth"]
     thickness, radius = p["specimen_t"], p["specimen_r"]
     angle = math.radians(p["specimen_angle"])
     length, slot_width = p["slot_length"], p["slot_width"]
     bridge, corner = p["slot_bridge"], p["corner_r"]
-    count = math.floor((width - 2*corner - 2*p["slot_margin"] + bridge) / (length + bridge))
+    cap = slot_width/2 if profile == "rounded" else 0
+    count = math.floor((width - 2*corner - 2*cap - 2*p["slot_margin"] + bridge) / (length + bridge))
     allowance = angle * (radius + p["specimen_k"]*thickness)
     setback = (radius + thickness) * math.tan(angle/2)
     flat_length = depth + 2*p["specimen_flange"] - 4*setback + 2*allowance
-    slot_area = (length - slot_width)*slot_width + math.pi*slot_width**2/4
+    slot_area = ((length-slot_width)*slot_width + math.pi*slot_width**2/4
+                 if profile == "rounded" else length*slot_width)
     # Four outer corners. Each bend-end relief removes a slot-height throat
     # and the scraps outside two quarter circles in the adjacent panels.
     outer_scraps = 4*corner**2*(1 - math.pi/4)
-    end_reliefs = 4*(corner*slot_width + 2*corner**2*(1 - math.pi/4))
+    end_reliefs = 4*(corner*slot_width + 2*corner**2*(1 - math.pi/4) + math.pi*cap**2/2)
     volume = (width*flat_length - 2*count*slot_area - outer_scraps - end_reliefs)*thickness
     return p, 2*count, flat_length, volume
 
@@ -98,7 +103,7 @@ def dxf_entities(dxf):
             current = {"type": value}
         elif current is not None and code == 8:
             current["layer"] = value
-        elif current is not None and code in (10, 20, 11, 21):
+        elif current is not None and code in (10, 20, 11, 21, 40, 50, 51):
             current[str(code)] = float(value)
     return entities
 
@@ -107,46 +112,83 @@ def dxf_counts(dxf):
     return collections.Counter((e.get("layer"), e["type"]) for e in dxf_entities(dxf))
 
 
-def check_relief_alignment(flat, entities, p):
+def check_relief_alignment(flat, entities, p, profile):
     angle = math.radians(p["specimen_angle"])
     allowance = angle*(p["specimen_r"] + p["specimen_k"]*p["specimen_t"])
     centre = (p["specimen_r"] + p["specimen_t"])*math.tan(angle/2) - allowance/2
     centres = [centre, p["specimen_depth"] - centre]
     width = p["slot_width"]
+    cap = width/2 if profile == "rounded" else 0
     errors = []
     for y in centres:
-        for x in [p["corner_r"], p["specimen_width"] - p["corner_r"]]:
+        for x, side in [(p["corner_r"], 1), (p["specimen_width"]-p["corner_r"], -1)]:
             matches = []
             for e in entities:
-                if e.get("layer") != "OUTLINE" or e["type"] != "LINE":
+                if e.get("layer") != "OUTLINE":
                     continue
-                low, high = sorted([e["20"], e["21"]])
-                error = max(abs(e["10"] - x), abs(e["11"] - x),
-                            abs(low - (y-width/2)), abs(high - (y+width/2)))
+                if profile == "rounded":
+                    if e["type"] != "ARC":
+                        continue
+                    error = max(abs(e["10"]-x), abs(e["20"]-y), abs(e["40"]-cap))
+                else:
+                    if e["type"] != "LINE":
+                        continue
+                    low, high = sorted([e["20"], e["21"]])
+                    error = max(abs(e["10"]-x), abs(e["11"]-x),
+                                abs(low-(y-width/2)), abs(high-(y+width/2)))
                 if error < 1e-6:
-                    matches.append(error)
-            assert len(matches) == 1, ("relief throat must align with slot", x, y, matches)
-            errors.extend(matches)
+                    matches.append((error, e))
+            assert matches, ("relief throat must align with slot", profile, x, y)
+            errors.extend(error for error, _ in matches)
+            if profile == "rounded":
+                # The exact DXF arcs must cover the inward semicircle without gaps.
+                origin = 270 if side == 1 else 90
+                intervals = []
+                for _, e in matches:
+                    start = (e["50"]-origin) % 360
+                    if abs(start-360) < 1e-5:
+                        start = 0
+                    sweep = (e["51"]-e["50"]) % 360
+                    intervals.append((start, start+sweep))
+                end = 0
+                for start, stop in sorted(intervals):
+                    assert abs(start-end) < 1e-5 and stop > start, intervals
+                    end = stop
+                assert abs(end-180) < 1e-5, intervals
+            else:
+                assert len(matches) == 1, matches
+    rows = {y: [] for y in centres}
     for shape in flat["cutout_shapes"]:
-        arcs = [s["arc"] for s in shape["segments"] if "arc" in s]
-        low = min(a["center"][1]-a["radius"] for a in arcs)
-        high = max(a["center"][1]+a["radius"] for a in arcs)
+        points = []
+        for segment in shape["segments"]:
+            if "line" in segment:
+                points.extend(segment["line"])
+            else:
+                arc = segment["arc"]
+                cx, cy = arc["center"]
+                r = arc["radius"]
+                points += [[cx-r, cy-r], [cx+r, cy+r]]
+        low, high = min(v[1] for v in points), max(v[1] for v in points)
         y = min(centres, key=lambda v: abs((low+high)/2-v))
         errors += [abs(low-(y-width/2)), abs(high-(y+width/2))]
+        rows[y].append((min(v[0] for v in points), max(v[0] for v in points)))
+    minimum_end_bridge = float("inf")
+    for spans in rows.values():
+        spans.sort()
+        end_bridge = min(spans[0][0]-p["corner_r"]-cap,
+                         p["specimen_width"]-p["corner_r"]-cap-spans[-1][1])
+        assert end_bridge >= p["slot_margin"]-1e-6, (profile, end_bridge)
+        assert all(b[0]-a[1] >= p["slot_bridge"]-1e-6 for a, b in zip(spans, spans[1:])), spans
+        minimum_end_bridge = min(minimum_end_bridge, end_bridge)
     assert max(errors) < 1e-6, errors
-    return max(errors)
+    return max(errors), minimum_end_bridge
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cli", default="solidcraft-cli")
-    parser.add_argument("--output-dir", type=Path)
-    args = parser.parse_args()
-    work = args.output_dir or Path(tempfile.mkdtemp(prefix="solidcraft-bend-slots-"))
+def check_profile(cli, work, profile):
     work.mkdir(parents=True, exist_ok=True)
-    fixture = Path(__file__).resolve().parents[1] / "examples/sheet-bend-slots-prototype.json"
+    fixture = write_script(work / "recipe.json", build_example(profile)["commands"])
     base = work / "prototype.sc"
-    run(args.cli, fixture, work / "build.json", save=base)
+    run(cli, fixture, work / "build.json", save=base)
     receipts = []
     for name, changes in CASES.items():
         commands = []
@@ -158,10 +200,10 @@ def main():
         ]
         script = write_script(work / (name + ".json"), commands)
         saved = work / (name + ".sc")
-        results = run(args.cli, script, work / (name + "-results.json"), base, saved)
+        results = run(cli, script, work / (name + "-results.json"), base, saved)
         flat, measured, seed, ends = results[-4:]
         body = measured["bodies"][0]
-        p, slots, flat_length, volume = expected(changes)
+        p, slots, flat_length, volume = expected(changes, profile)
         assert len(flat["cutouts"]) == slots, name
         assert body["closed"] and body["sheet_metal"], name
         assert abs(flat["flat_size_mm"][0] - p["specimen_width"]) < 1e-6, name
@@ -170,31 +212,36 @@ def main():
         assert seed["dof"] == 0 and ends["dof"] == 0, name
         for shape in flat["cutout_shapes"]:
             arcs = [s["arc"] for s in shape["segments"] if "arc" in s]
-            assert len(arcs) == 2, name
+            assert len(arcs) == (2 if profile == "rounded" else 0), name
             assert all(abs(a["radius"] - p["slot_width"]/2) < 1e-6 for a in arcs), name
         query = write_script(work / "inspect-saved.json", inspect_commands() + [
             {"command": "sheet.export_dxf", "params": {"body": BODY, "bend_lines": False}},
         ])
-        reopened = run(args.cli, query, work / (name + "-reopened.json"), saved)
+        reopened = run(cli, query, work / (name + "-reopened.json"), saved)
         assert len(reopened[0]["cutouts"]) == slots, name
         assert reopened[1]["bodies"][0]["closed"], name
         assert abs(reopened[1]["bodies"][0]["volume_mm3"] - body["volume_mm3"]) < 1e-6, name
-        alignment_error = check_relief_alignment(reopened[0], dxf_entities(reopened[2]["dxf"]), p)
+        alignment_error, end_bridge = check_relief_alignment(
+            reopened[0], dxf_entities(reopened[2]["dxf"]), p, profile)
         receipt = {"case": name, "changes": changes, "slots": slots,
                    "closed": True, "sheet_metal": True, "sketch_dof": [0, 0],
                    "saved_variant_reopened": True, "flat_size_mm": flat["flat_size_mm"],
                    "expected_volume_mm3": volume, "measured_volume_mm3": body["volume_mm3"],
                    "volume_error_mm3": body["volume_mm3"] - volume,
                    "relief_height_mm": p["slot_width"], "aligned_reliefs": 4,
-                   "max_alignment_error_mm": alignment_error}
+                   "max_alignment_error_mm": alignment_error,
+                   "relief_end_radius_mm": p["slot_width"]/2 if profile == "rounded" else 0,
+                   "minimum_end_bridge_mm": end_bridge}
         receipts.append(receipt)
-        print(name + ": pass", flush=True)
+        print(profile + "/" + name + ": pass", flush=True)
     query = write_script(work / "dxf.json", [
         {"command": "sheet.export_dxf", "params": {"body": BODY, "bend_lines": False}},
     ])
-    counts = dxf_counts(run(args.cli, query, work / "dxf-results.json", base)[0]["dxf"])
-    assert counts[("CUT", "ARC")] == 20 and counts[("CUT", "LINE")] == 20
-    assert counts[("OUTLINE", "ARC")] == 12
+    counts = dxf_counts(run(cli, query, work / "dxf-results.json", base)[0]["dxf"])
+    cut_arcs, cut_lines = (20, 20) if profile == "rounded" else (0, 40)
+    outline_arcs = 16 if profile == "rounded" else 12
+    assert counts[("CUT", "ARC")] == cut_arcs and counts[("CUT", "LINE")] == cut_lines
+    assert counts[("OUTLINE", "ARC")] == outline_arcs
     assert not any(layer in ("BEND_UP", "BEND_DOWN") for layer, _ in counts)
     invalid = work / "invalid-must-not-save.sc"
     if invalid.exists():
@@ -203,17 +250,31 @@ def main():
         {"command": "parameters.change", "params": {"name": "specimen_width", "expression": "10 mm"}},
     ])
     before = hashlib.sha256(base.read_bytes()).hexdigest()
-    result = subprocess.run([args.cli, "run", str(query), "--in", str(base), "--save", str(invalid)],
+    result = subprocess.run([cli, "run", str(query), "--in", str(base), "--save", str(invalid)],
                             capture_output=True, text=True, timeout=120)
     assert result.returncode != 0 and not invalid.exists()
     assert hashlib.sha256(base.read_bytes()).hexdigest() == before
-    report = {"status": "passed", "fixture_sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
-              "tests": receipts, "dxf": {"cut_arcs": 20, "cut_lines": 20, "outline_arcs": 12,
+    report = {"status": "passed", "profile": profile, "fixture_sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
+              "tests": receipts, "dxf": {"cut_arcs": cut_arcs, "cut_lines": cut_lines, "outline_arcs": outline_arcs,
                                          "bend_markings_omitted": True},
               "invalid_count": {"refused": True, "source_unchanged": True,
                                 "error": result.stderr.strip()[-1500:]}}
     (work / "verification.json").write_text(json.dumps(report, indent=2) + "\n")
-    print("DXF contours, invalid-count refusal and save/reopen: pass")
+    print(profile + ": DXF, invalid-count refusal and save/reopen passed")
+    return report
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cli", default="solidcraft-cli")
+    parser.add_argument("--profile", choices=("all",) + PROFILES, default="all")
+    parser.add_argument("--output-dir", type=Path)
+    args = parser.parse_args()
+    work = args.output_dir or Path(tempfile.mkdtemp(prefix="solidcraft-bend-slots-"))
+    work.mkdir(parents=True, exist_ok=True)
+    profiles = PROFILES if args.profile == "all" else (args.profile,)
+    reports = {profile: check_profile(args.cli, work / profile, profile) for profile in profiles}
+    (work / "verification.json").write_text(json.dumps({"status": "passed", "profiles": reports}, indent=2) + "\n")
     print("Results: " + str(work / "verification.json"))
 
 

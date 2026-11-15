@@ -96,7 +96,7 @@
       "command": "parameters.add",
       "params": {
         "name": "slot_count",
-        "expression": "floor((specimen_width-2*corner_r-2*slot_margin+slot_bridge)/slot_pitch)",
+        "expression": "floor((specimen_width-2*corner_r-slot_width-2*slot_margin+slot_bridge)/slot_pitch)",
         "unit": "unitless"
       }
     },
@@ -429,12 +429,22 @@
       }
     },
     {
-      "command": "sketch.line",
+      "command": "sketch.point",
       "params": {
-        "points": [
-          "b0s0ih",
-          "b0s0il"
-        ]
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(bend_y)"
+        ],
+        "id": "b0s0ct"
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b0s0ct",
+        "start": "b0s0ih",
+        "end": "b0s0il",
+        "clockwise": true
       }
     },
     {
@@ -525,12 +535,22 @@
       }
     },
     {
-      "command": "sketch.line",
+      "command": "sketch.point",
       "params": {
-        "points": [
-          "b0s1ih",
-          "b0s1il"
-        ]
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(bend_y)"
+        ],
+        "id": "b0s1ct"
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b0s1ct",
+        "start": "b0s1ih",
+        "end": "b0s1il",
+        "clockwise": false
       }
     },
     {
@@ -621,12 +641,22 @@
       }
     },
     {
-      "command": "sketch.line",
+      "command": "sketch.point",
       "params": {
-        "points": [
-          "b1s0ih",
-          "b1s0il"
-        ]
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(specimen_depth-bend_y)"
+        ],
+        "id": "b1s0ct"
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b1s0ct",
+        "start": "b1s0ih",
+        "end": "b1s0il",
+        "clockwise": true
       }
     },
     {
@@ -717,12 +747,22 @@
       }
     },
     {
-      "command": "sketch.line",
+      "command": "sketch.point",
       "params": {
-        "points": [
-          "b1s1ih",
-          "b1s1il"
-        ]
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(specimen_depth-bend_y)"
+        ],
+        "id": "b1s1ct"
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b1s1ct",
+        "start": "b1s1ih",
+        "end": "b1s1il",
+        "clockwise": false
       }
     },
     {
