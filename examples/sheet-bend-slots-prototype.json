@@ -1,0 +1,775 @@
+{
+  "commands": [
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_width",
+        "expression": "60 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_depth",
+        "expression": "100 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_flange",
+        "expression": "20 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_t",
+        "expression": "2 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_r",
+        "expression": "2 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_angle",
+        "expression": "45 deg"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "specimen_k",
+        "expression": "0.5",
+        "unit": "unitless"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_length",
+        "expression": "7 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_width",
+        "expression": "1 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_bridge",
+        "expression": "3 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_margin",
+        "expression": "2 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_pitch",
+        "expression": "slot_length+slot_bridge"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "corner_r",
+        "expression": "3 mm"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_count",
+        "expression": "floor((specimen_width-2*corner_r-2*slot_margin+slot_bridge)/slot_pitch)",
+        "unit": "unitless"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "slot_start",
+        "expression": "(specimen_width-(slot_count*slot_length+(slot_count-1)*slot_bridge))/2"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "bend_allowance",
+        "expression": "(specimen_angle/(1 rad))*(specimen_r+specimen_k*specimen_t)"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "bend_setback",
+        "expression": "(specimen_r+specimen_t)*tan(specimen_angle/2)"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "bend_y",
+        "expression": "bend_setback-bend_allowance/2"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "flat_min",
+        "expression": "2*bend_setback-bend_allowance-specimen_flange"
+      }
+    },
+    {
+      "command": "parameters.add",
+      "params": {
+        "name": "flat_max",
+        "expression": "specimen_depth-flat_min"
+      }
+    },
+    {
+      "command": "sheet.manage_rules",
+      "params": {
+        "name": "Geometry specimen",
+        "thickness": "specimen_t",
+        "bend_radius": "specimen_r",
+        "k_factor": "specimen_k",
+        "active": true
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": "XY",
+        "name": "Specimen base"
+      }
+    },
+    {
+      "command": "sketch.rectangle.two_point",
+      "params": {
+        "p0": [
+          0,
+          0
+        ],
+        "p1": [
+          "specimen_width",
+          "specimen_depth"
+        ]
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "sheet.flange",
+      "params": {
+        "sketch": "Specimen base",
+        "body_name": "Hand-bend specimen"
+      }
+    },
+    {
+      "command": "sheet.flange",
+      "params": {
+        "body": "Hand-bend specimen",
+        "edges": [
+          [
+            30,
+            0,
+            2
+          ],
+          [
+            30,
+            100,
+            2
+          ]
+        ],
+        "height": "specimen_flange",
+        "angle": "specimen_angle"
+      }
+    },
+    {
+      "command": "sheet.unfold",
+      "params": {
+        "body": "Hand-bend specimen"
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": "XY",
+        "offset": "specimen_t",
+        "name": "Bend slot seed"
+      }
+    },
+    {
+      "command": "sketch.draw.dimensioned",
+      "params": {
+        "command": "sketch.slot.overall",
+        "params": {
+          "p0": [
+            6.5,
+            0.478756866
+          ],
+          "p1": [
+            13.5,
+            0.478756866
+          ],
+          "width": 1
+        },
+        "dimensions": {
+          "width": "slot_width",
+          "length": "slot_length"
+        },
+        "locate": true
+      }
+    },
+    {
+      "command": "parameters.change",
+      "params": {
+        "changes": {
+          "d6": "slot_start+slot_length-slot_width/2",
+          "d7": "bend_y",
+          "d8": "bend_y"
+        }
+      }
+    },
+    {
+      "command": "sketch.pattern.rectangular",
+      "params": {
+        "entities": [
+          "l1",
+          "a1",
+          "l2",
+          "a2",
+          "l3"
+        ],
+        "count": "slot_count",
+        "spacing": "slot_pitch",
+        "dir": [
+          1,
+          0
+        ],
+        "count2": 2,
+        "spacing2": "specimen_depth-2*bend_y",
+        "dir2": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Bend slot seed",
+        "operation": "cut",
+        "targets": [
+          "Hand-bend specimen"
+        ],
+        "through_all": true,
+        "direction": "symmetric",
+        "name": "Bend slots - native sketch pattern"
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": "XY",
+        "offset": "specimen_t",
+        "name": "Rounded panel perimeter"
+      }
+    },
+    {
+      "command": "sketch.rectangle.two_point",
+      "params": {
+        "p0": [
+          "-specimen_t*5",
+          "flat_min-specimen_t*5"
+        ],
+        "p1": [
+          "specimen_width+specimen_t*5",
+          "flat_max+specimen_t*5"
+        ]
+      }
+    },
+    {
+      "command": "sketch.rectangle.rounded",
+      "params": {
+        "p0": [
+          "0*specimen_width",
+          "flat_min"
+        ],
+        "p1": [
+          "specimen_width",
+          "flat_max"
+        ],
+        "radius": "corner_r"
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Rounded panel perimeter",
+        "operation": "cut",
+        "targets": [
+          "Hand-bend specimen"
+        ],
+        "through_all": true,
+        "direction": "symmetric",
+        "name": "Round free panel corners - native perimeter cut"
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": "XY",
+        "offset": "specimen_t",
+        "name": "Rounded bend ends"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "0*specimen_width",
+          "(bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b0s0ol"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "0*specimen_width",
+          "(bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b0s0oh"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(bend_y)+bend_allowance/2"
+        ],
+        "id": "b0s0ih"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(bend_y)-bend_allowance/2"
+        ],
+        "id": "b0s0il"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b0s0ch"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b0s0cl"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b0s0ol",
+          "b0s0oh"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b0s0ch",
+        "start": "b0s0oh",
+        "end": "b0s0ih",
+        "clockwise": false
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b0s0ih",
+          "b0s0il"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b0s0cl",
+        "start": "b0s0il",
+        "end": "b0s0ol",
+        "clockwise": false
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "specimen_width",
+          "(bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b0s1ol"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "specimen_width",
+          "(bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b0s1oh"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(bend_y)+bend_allowance/2"
+        ],
+        "id": "b0s1ih"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(bend_y)-bend_allowance/2"
+        ],
+        "id": "b0s1il"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b0s1ch"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b0s1cl"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b0s1ol",
+          "b0s1oh"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b0s1ch",
+        "start": "b0s1oh",
+        "end": "b0s1ih",
+        "clockwise": true
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b0s1ih",
+          "b0s1il"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b0s1cl",
+        "start": "b0s1il",
+        "end": "b0s1ol",
+        "clockwise": true
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "0*specimen_width",
+          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b1s0ol"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "0*specimen_width",
+          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b1s0oh"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(specimen_depth-bend_y)+bend_allowance/2"
+        ],
+        "id": "b1s0ih"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(specimen_depth-bend_y)-bend_allowance/2"
+        ],
+        "id": "b1s0il"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b1s0ch"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(0*specimen_width)+(1)*corner_r",
+          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b1s0cl"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b1s0ol",
+          "b1s0oh"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b1s0ch",
+        "start": "b1s0oh",
+        "end": "b1s0ih",
+        "clockwise": false
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b1s0ih",
+          "b1s0il"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b1s0cl",
+        "start": "b1s0il",
+        "end": "b1s0ol",
+        "clockwise": false
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "specimen_width",
+          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b1s1ol"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "specimen_width",
+          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b1s1oh"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(specimen_depth-bend_y)+bend_allowance/2"
+        ],
+        "id": "b1s1ih"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(specimen_depth-bend_y)-bend_allowance/2"
+        ],
+        "id": "b1s1il"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(specimen_depth-bend_y)+bend_allowance/2+corner_r"
+        ],
+        "id": "b1s1ch"
+      }
+    },
+    {
+      "command": "sketch.point",
+      "params": {
+        "point": [
+          "(specimen_width)+(-1)*corner_r",
+          "(specimen_depth-bend_y)-bend_allowance/2-corner_r"
+        ],
+        "id": "b1s1cl"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b1s1ol",
+          "b1s1oh"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b1s1ch",
+        "start": "b1s1oh",
+        "end": "b1s1ih",
+        "clockwise": true
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          "b1s1ih",
+          "b1s1il"
+        ]
+      }
+    },
+    {
+      "command": "sketch.arc.center_point",
+      "params": {
+        "center": "b1s1cl",
+        "start": "b1s1il",
+        "end": "b1s1ol",
+        "clockwise": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Rounded bend ends",
+        "operation": "cut",
+        "targets": [
+          "Hand-bend specimen"
+        ],
+        "through_all": true,
+        "direction": "symmetric",
+        "name": "Rounded bend ends - native relief cuts"
+      }
+    },
+    {
+      "command": "sheet.refold",
+      "params": {
+        "body": "Hand-bend specimen"
+      }
+    },
+    {
+      "command": "sheet.flat_pattern",
+      "params": {
+        "body": "Hand-bend specimen"
+      }
+    },
+    {
+      "command": "inspect.measure",
+      "params": {
+        "bodies": [
+          "Hand-bend specimen"
+        ]
+      }
+    }
+  ]
+}
